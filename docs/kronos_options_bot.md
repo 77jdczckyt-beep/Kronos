@@ -39,8 +39,25 @@ matrix.
 | `pricing.py` | Black-Scholes, implied-vol inversion, quote types |
 | `signals.py` | Ensemble + option chain → accept/reject with a reason |
 | `risk.py` | Hard caps, position sizing, exit rules |
+| `data.py` | `MarketData` sources; never leaks future bars |
+| `broker.py` | Order types, dry-run broker, live arming gate |
+| `runner.py` | `scan()` → ranked candidates; `run()` → gated placement |
 | `backtest.py` | Walk-forward loop against a simulated option chain |
 | `validate.py` | The three experiments below |
+
+Entry scanning is the useful half:
+
+```python
+report = scan(["AAPL"], market, forecaster, RiskBook(), now=datetime.now())
+print(report.summary())   # candidates, and why each skip happened
+```
+
+`run()` adds placement and is inert by default — it uses `DryRunBroker`, which
+records the exact orders it would have sent without contacting anything. Live
+placement needs a `LiveBroker` with `armed=True` and a per-session order
+budget; strategy code cannot arm it. `OrderRequest` has no field capable of
+expressing a short option, so selling to open is unrepresentable rather than
+merely discouraged.
 
 ## The filter bug worth knowing about
 
@@ -131,19 +148,32 @@ into a trap.
 
 ## Execution
 
-There is no order-placement code in this package, deliberately.
+`MCPBroker` is an explicit stub that raises `NotImplementedError`. That is the
+deliberate choice, not an oversight.
+
+Binding it requires reading the brokerage MCP server's real tool schemas — the
+names, argument shapes, and return payloads. Guessing them produces code that
+looks complete, reviews cleanly, and fails at the only moment that matters.
+This repository already contains one artifact of that failure mode: a scheduled
+trigger whose prompt instructed a session to run `python -m cli.main politrade`
+and call `get_option_positions`, neither of which was ever committed. The stub's
+docstring lists what a real adapter must do; fill it in against the schemas, not
+against expectations.
+
+Other blockers as of this writing:
 
 - The Robinhood MCP server in this environment is unauthorised, and OAuth
   cannot be completed from a non-interactive session.
-- This environment's network policy blocks all external hosts —
-  `huggingface.co` included — so the Kronos weights cannot be downloaded and
-  **the Kronos path in `forecast.py` has never been executed**. It is written
-  against the `predict_batch` signature but is untested. Everything else is
-  covered by the 23 tests, which run on the bootstrap forecaster.
-- No forecaster in this repo has demonstrated edge on real data. The bootstrap
-  baseline is noise by construction, and the oracle cheats.
+- The network policy blocks all external hosts — `huggingface.co` included — so
+  the Kronos weights cannot be downloaded and **the Kronos path in
+  `forecast.py` has never been executed**. It is written against the
+  `predict_batch` signature but is untested. Everything else is covered by the
+  39 tests, which run on the bootstrap forecaster.
+- No forecaster here has demonstrated edge on real data. The bootstrap baseline
+  is noise by construction, and the oracle cheats.
 
-Before any live path is worth building, in order: reachable weights → Kronos
-run through the noise-floor experiment on real data → a result that clears the
-luck band by a wide margin → paper trading → and only then a funded account,
-with a human approving orders until the live numbers match the backtest.
+Suggested order: reachable weights → Kronos run through the noise-floor
+experiment on real data → a result that clears the luck band by a wide margin →
+dry-run scans against live quotes, comparing proposed orders to what actually
+happened → paper trading → and only then a funded account, with orders reviewed
+until live numbers match the backtest.
