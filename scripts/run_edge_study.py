@@ -57,27 +57,47 @@ def main() -> None:
     print("\n" + kr.summary())
     print(f"(kronos took {time.time() - t0:.0f}s)\n")
 
-    ics = np.array([b.ic_pearson() for b in baselines])
-    k_ic = kr.ic_pearson()
-    z = (k_ic - ics.mean()) / ics.std(ddof=1) if ics.std(ddof=1) > 0 else float("nan")
-    better = int((ics >= k_ic).sum())
+    # Rank IC is the primary metric. Returns are fat-tailed, so Pearson
+    # correlation on 120 points can be dominated by two or three extreme moves.
+    # When the two disagree sharply, the Pearson figure is the outlier artifact
+    # and the rank figure is the honest read -- reporting only Pearson would
+    # manufacture a verdict out of noise in either direction.
+    p_ics = np.array([b.ic_pearson() for b in baselines])
+    r_ics = np.array([b.ic_spearman() for b in baselines])
+    k_p, k_r = kr.ic_pearson(), kr.ic_spearman()
+
+    def z_of(x, arr):
+        sd = arr.std(ddof=1)
+        return (x - arr.mean()) / sd if sd > 0 else float("nan")
 
     print("=" * 68)
     print("VERDICT")
     print("=" * 68)
-    print(f"Kronos IC        {k_ic:+.4f}   (t={kr.ic_tstat():+.2f})")
-    print(f"baseline IC      {ics.mean():+.4f} +/- {ics.std(ddof=1):.4f}")
-    print(f"z vs baseline    {z:+.2f}")
-    print(f"baseline seeds matching or beating Kronos: {better}/{len(ics)}")
+    print(f"{'':<18}{'Kronos':>10}{'baseline mean':>16}{'baseline sd':>14}{'z':>8}")
+    print(f"{'rank IC (primary)':<18}{k_r:>+10.4f}{r_ics.mean():>+16.4f}"
+          f"{r_ics.std(ddof=1):>14.4f}{z_of(k_r, r_ics):>+8.2f}")
+    print(f"{'Pearson IC':<18}{k_p:>+10.4f}{p_ics.mean():>+16.4f}"
+          f"{p_ics.std(ddof=1):>14.4f}{z_of(k_p, p_ics):>+8.2f}")
+    print(f"{'hit rate':<18}{kr.hit_rate():>10.1%}")
     print()
-    if not np.isfinite(k_ic) or abs(kr.ic_tstat()) < 2.0:
-        print("Kronos IC is not statistically distinguishable from zero.")
-    if better > 0:
-        print(f"{better} skill-free seed(s) did as well or better. That is what")
-        print("luck looks like at this sample size.")
-    if abs(kr.ic_tstat()) >= 2.0 and better == 0 and k_ic > 0:
-        print("Kronos beat every baseline seed with a significant IC.")
-        print("Worth a second look on different data before trusting it.")
+
+    if abs(r_ics.mean()) < 0.03 < abs(p_ics.mean()):
+        print("NOTE: the baseline's Pearson IC is inflated relative to its rank IC,")
+        print("so a few extreme returns are driving it. Its rank IC near zero is")
+        print("the truthful statement that the baseline has no skill. Judge Kronos")
+        print("on the rank row.")
+        print()
+
+    if abs(z_of(k_r, r_ics)) < 2.0:
+        print("Kronos rank IC sits inside the skill-free baseline's spread.")
+        print("No edge detected. This does not mean Kronos is worse than noise --")
+        print("it means neither is distinguishable from zero on this data.")
+    elif k_r > 0:
+        print("Kronos rank IC clears the baseline spread. Replicate on different")
+        print("data before trusting it.")
+    else:
+        print("Kronos rank IC is below the baseline spread. Check for a sign or")
+        print("alignment error before concluding it is anti-predictive.")
 
 
 if __name__ == "__main__":
