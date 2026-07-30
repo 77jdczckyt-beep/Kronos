@@ -122,6 +122,7 @@ def main() -> None:
         return loaded[repo]
 
     results = []
+    holdout_done: set[str] = set()
     for label, repo, horizon in CONFIGS:
         print(f"--- {label} ---", flush=True)
         t0 = time.time()
@@ -137,8 +138,24 @@ def main() -> None:
         )
         z = (r.ic_spearman() - band.mean()) / band.std(ddof=1) if band.std(ddof=1) > 0 else np.nan
         print(f"  {label}: n={r.n} rank IC={r.ic_spearman():+.4f} "
-              f"hit={r.hit_rate():.1%} z={z:+.2f}  ({time.time() - t0:.0f}s)\n", flush=True)
+              f"hit={r.hit_rate():.1%} z={z:+.2f}  ({time.time() - t0:.0f}s)", flush=True)
         results.append((label, repo, horizon, r, band, z))
+
+        # Run the holdout immediately, not after every config. Sequencing the
+        # decisive check behind the slowest job means a timeout kills the one
+        # result that mattered -- which is exactly what happened the first time.
+        if np.isfinite(z) and z >= 2.0 and r.ic_spearman() > 0:
+            print(f"  {label} cleared the bar -- testing holdout now", flush=True)
+            band_h = baseline_band(hold, horizon, POINTS_PER_SYMBOL)
+            rh = pooled(hold, lambda p=pred: KronosEnsembleForecaster(p, batch_size=N_PATHS),
+                        f"{label}-holdout", horizon, POINTS_PER_SYMBOL)
+            zh = ((rh.ic_spearman() - band_h.mean()) / band_h.std(ddof=1)
+                  if band_h.std(ddof=1) > 0 else np.nan)
+            verdict = "HOLDS UP" if np.isfinite(zh) and zh >= 2.0 else "did not replicate"
+            print(f"  {label} HOLDOUT: rank IC={rh.ic_spearman():+.4f} "
+                  f"hit={rh.hit_rate():.1%} z={zh:+.2f}  {verdict}", flush=True)
+            holdout_done.add(label)
+        print(flush=True)
 
     print("=" * 72)
     print("SWEEP RESULTS (training split)")
@@ -149,7 +166,9 @@ def main() -> None:
               f"{band.mean():>+11.4f}{z:>+8.2f}")
     print()
 
-    winners = [x for x in results if np.isfinite(x[5]) and x[5] >= 2.0 and x[3].ic_spearman() > 0]
+    winners = [x for x in results
+               if np.isfinite(x[5]) and x[5] >= 2.0 and x[3].ic_spearman() > 0
+               and x[0] not in holdout_done]
     if not winners:
         print("No configuration cleared the baseline spread on the training split.")
         print("Nothing to take to holdout. The forecast-driven approach does not")
