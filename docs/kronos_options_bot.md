@@ -124,6 +124,27 @@ Consequences, stated plainly:
 - Anyone claiming this kind of strategy "makes money fast" is describing the
   best seed of a wide distribution.
 
+## Does Kronos actually predict anything?
+
+`python scripts/run_edge_study.py`
+
+This is the experiment that should gate funding, and it deliberately does not
+simulate a strategy. A strategy adds thresholds, position sizing, and costs —
+each a free parameter capable of manufacturing a good-looking result from a
+forecaster with no skill. `edge.py` instead measures the raw relationship
+between predicted and realised returns.
+
+The metric is the **information coefficient**: correlation between predicted
+and realised return across decision points. IC of 0 means no skill. Real
+exploitable equity signals typically sit around 0.02–0.05. Anything above 0.15
+out-of-sample should be treated as a bug until proven otherwise.
+
+It is always reported against a skill-free bootstrap baseline over many seeds,
+because the question is never "is the number positive" but "does it beat
+noise". Decision points are spaced at least one horizon apart so outcome
+windows never overlap — overlapping windows correlate observations and inflate
+significance, which is the most common way a study like this fools itself.
+
 ## Backtest caveats
 
 The harness is honest about being a simulation:
@@ -164,13 +185,18 @@ Other blockers as of this writing:
 
 - The Robinhood MCP server in this environment is unauthorised, and OAuth
   cannot be completed from a non-interactive session.
-- The network policy blocks all external hosts — `huggingface.co` included — so
-  the Kronos weights cannot be downloaded and **the Kronos path in
-  `forecast.py` has never been executed**. It is written against the
-  `predict_batch` signature but is untested. Everything else is covered by the
-  39 tests, which run on the bootstrap forecaster.
 - No forecaster here has demonstrated edge on real data. The bootstrap baseline
-  is noise by construction, and the oracle cheats.
+  is noise by construction, and the oracle cheats. See the edge study above.
+
+Network access note: reaching HuggingFace needs **both** `huggingface.co` /
+`*.huggingface.co` **and** `hf.co` / `*.hf.co` on the environment's allowed
+domains. Large files are served from `cas-server.xethub.hf.co` and
+`us.aws.cdn.hf.co`, which are on the `hf.co` domain, not `huggingface.co`.
+Allowing only the latter lets metadata resolve while every weight download
+fails with a 403.
+
+Kronos runs on CPU at roughly 18s per 32-path forecast at a 12-bar horizon,
+so a multi-symbol scan is minutes, not seconds.
 
 Suggested order: reachable weights → Kronos run through the noise-floor
 experiment on real data → a result that clears the luck band by a wide margin →
