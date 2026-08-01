@@ -37,12 +37,20 @@ UNMANAGED = {"F", "SOFI"}
 # receipt whether reinvested or not, so this sleeve carries a small permanent
 # tax drag. It is held because the owner asked for dividend exposure, sized so
 # that drag stays modest.
+# On PICK: global metals and mining producers. This is a cyclical sector bet,
+# not a core holding. Mining companies are capital-intensive price-takers whose
+# earnings swing with commodity cycles, and over long periods the sector has
+# lagged broad equities while being considerably more volatile. It is held for
+# the commodity and inflation exposure the other sleeves lack, and because the
+# owner asked for it. Note VOO and VXUS already contain materials companies, so
+# this is an overweight rather than a new asset class.
 POLICY = AllocationPolicy(
     targets={
-        "VOO": 0.50,   # S&P 500 -- the large, established US companies
+        "VOO": 0.40,   # S&P 500 -- the large, established US companies
         "QQQ": 0.10,   # Nasdaq 100 -- deliberate mega-cap tech tilt
         "SCHD": 0.20,  # dividend / quality tilt
         "VXUS": 0.20,  # total international -- diversification outside the US
+        "PICK": 0.10,  # global metals & mining -- cyclical commodity tilt
     },
     # 5 percentage points of drift before anything is sold. Wide on purpose:
     # rebalancing more often costs more in spread than the drift it corrects.
