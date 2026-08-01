@@ -23,11 +23,26 @@ ACCOUNT = "460652704"
 # is not an automated decision.
 UNMANAGED = {"F", "SOFI"}
 
+# No bonds: this is the aggressive setting, and it is the honest lever for it.
+# Higher expected return, deeper drawdowns. There is no allocation that raises
+# return without raising risk.
+#
+# On QQQ: its holdings already sit inside VOO, so 10% here does not add a new
+# asset -- it overweights the mega-cap technology names VOO already owns. That
+# is the point of the tilt, and it is a concentrated sector bet rather than
+# diversification. Sized small deliberately.
+#
+# On SCHD: a dividend is not extra return -- the share price drops by roughly
+# the payout. In a taxable account like this one, dividends are taxed on
+# receipt whether reinvested or not, so this sleeve carries a small permanent
+# tax drag. It is held because the owner asked for dividend exposure, sized so
+# that drag stays modest.
 POLICY = AllocationPolicy(
     targets={
-        "VOO": 0.70,   # S&P 500 -- the large, established US companies
+        "VOO": 0.50,   # S&P 500 -- the large, established US companies
+        "QQQ": 0.10,   # Nasdaq 100 -- deliberate mega-cap tech tilt
+        "SCHD": 0.20,  # dividend / quality tilt
         "VXUS": 0.20,  # total international -- diversification outside the US
-        "BND": 0.10,   # total bond market -- ballast
     },
     # 5 percentage points of drift before anything is sold. Wide on purpose:
     # rebalancing more often costs more in spread than the drift it corrects.
