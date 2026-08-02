@@ -23,9 +23,10 @@ ACCOUNT = "460652704"
 # is not an automated decision.
 UNMANAGED = {"F", "SOFI"}
 
-# No bonds: this is the aggressive setting, and it is the honest lever for it.
-# Higher expected return, deeper drawdowns. There is no allocation that raises
-# return without raising risk.
+# One bond sleeve, and not a defensive one -- see EDV below. Everything else
+# here is the aggressive setting, and it is the honest lever for it. Higher
+# expected return, deeper drawdowns. There is no allocation that raises return
+# without raising risk.
 #
 # On QQQ: its holdings already sit inside VOO, so 10% here does not add a new
 # asset -- it overweights the mega-cap technology names VOO already owns. That
@@ -44,13 +45,23 @@ UNMANAGED = {"F", "SOFI"}
 # the commodity and inflation exposure the other sleeves lack, and because the
 # owner asked for it. Note VOO and VXUS already contain materials companies, so
 # this is an overweight rather than a new asset class.
+#
+# On EDV: zero-coupon Treasury STRIPS, roughly 24 years of duration -- the most
+# rate-sensitive Treasury fund available. It is not ballast, and sizing it as
+# though it were is the mistake to avoid. A short or intermediate bond fund
+# damps a portfolio; EDV moves with equity-like amplitude off a different
+# driver, and it lost about 40% in 2022 as long rates rose. It is held as a
+# deliberate bet on long rates falling, and it is the sleeve most likely to sit
+# deeply underwater while the others do fine. Funded from VOO, so the trade is
+# US large-cap exposure for duration exposure.
 POLICY = AllocationPolicy(
     targets={
-        "VOO": 0.40,   # S&P 500 -- the large, established US companies
+        "VOO": 0.30,   # S&P 500 -- the large, established US companies
         "QQQ": 0.10,   # Nasdaq 100 -- deliberate mega-cap tech tilt
         "SCHD": 0.20,  # dividend / quality tilt
         "VXUS": 0.20,  # total international -- diversification outside the US
         "PICK": 0.10,  # global metals & mining -- cyclical commodity tilt
+        "EDV": 0.10,   # long-duration Treasuries -- rate bet, not ballast
     },
     # 5 percentage points of drift before anything is sold. Wide on purpose:
     # rebalancing more often costs more in spread than the drift it corrects.
