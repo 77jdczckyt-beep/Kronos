@@ -21,6 +21,7 @@ Design choices worth stating, because each rules out a way to lose money:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 
@@ -185,7 +186,14 @@ def plan_investment(
         for gap, sym, current, desired in shortfalls:
             if remaining < policy.min_order:
                 break
-            amount = min(gap, remaining)
+            # Truncate to whole cents, and subtract the same truncated figure
+            # from `remaining`. Rounding here while deducting the unrounded
+            # amount let each order drift up to half a cent above what was
+            # actually reserved; across many holdings that summed to more than
+            # the deployable cash and tripped the caller's buys_within_cash
+            # check. Truncating keeps the total at or under `deployable` no
+            # matter how many orders there are.
+            amount = math.floor(min(gap, remaining) * 100) / 100
             if amount < policy.min_order:
                 continue
             cur_w = current / investable
@@ -193,7 +201,7 @@ def plan_investment(
                 Trade(
                     symbol=sym,
                     side="buy",
-                    amount=round(amount, 2),
+                    amount=amount,
                     reason=(
                         f"{cur_w:.1%} vs {policy.targets[sym]:.0%} target, "
                         f"${gap:,.2f} below"

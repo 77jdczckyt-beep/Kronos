@@ -16,6 +16,8 @@
       "mcp__robinghood__get_equity_positions",
       "mcp__robinghood__get_equity_quotes",
       "mcp__robinghood__get_equity_orders",
+      "mcp__robinghood__get_watchlists",
+      "mcp__robinghood__get_watchlist_items",
       "mcp__robinghood__review_equity_order",
       "mcp__robinghood__place_equity_order",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_accounts",
@@ -23,6 +25,8 @@
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_positions",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_quotes",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_orders",
+      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_watchlists",
+      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_watchlist_items",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__review_equity_order",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__place_equity_order"
     ]

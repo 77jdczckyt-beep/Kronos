@@ -9,11 +9,27 @@ expresses the brief without anyone having to judge which firms qualify.
 Weights are a starting point and are meant to be edited. They are recorded here
 rather than embedded in code so that changing the strategy is a visible,
 reviewable act rather than a tweak buried in a function.
+
+Two sleeves:
+
+- **Core**, 80%, the index funds below. Fixed, and only changed by editing this
+  file.
+- **Satellite**, 20%, split evenly across whatever is on the "Stocks to buy"
+  watchlist at the moment a run happens. Adding a ticker there is enough to put
+  it in the buying rotation; no code change needed.
+
+The satellite sleeve is a deliberate exception to the "visible, reviewable act"
+rule above, and it is worth being clear-eyed about the trade. A ticker added to
+that watchlist will be bought with real money by an unattended job, without
+anyone reviewing the decision, and every addition silently shrinks every other
+satellite position to make room. The 20% cap is what makes that acceptable: the
+core 80% cannot be touched from a watchlist, so the worst case for a careless
+addition is bounded.
 """
 
 from __future__ import annotations
 
-from .allocation import AllocationPolicy
+from .allocation import AllocationPolicy, AllocationError
 
 # The agent-accessible account. Everything here targets this one only.
 ACCOUNT = "460652704"
@@ -54,20 +70,98 @@ UNMANAGED = {"F", "SOFI"}
 # deliberate bet on long rates falling, and it is the sleeve most likely to sit
 # deeply underwater while the others do fine. Funded from VOO, so the trade is
 # US large-cap exposure for duration exposure.
-POLICY = AllocationPolicy(
-    targets={
-        "VOO": 0.30,   # S&P 500 -- the large, established US companies
-        "QQQ": 0.10,   # Nasdaq 100 -- deliberate mega-cap tech tilt
-        "SCHD": 0.20,  # dividend / quality tilt
-        "VXUS": 0.20,  # total international -- diversification outside the US
-        "PICK": 0.10,  # global metals & mining -- cyclical commodity tilt
-        "EDV": 0.10,   # long-duration Treasuries -- rate bet, not ballast
-    },
-    # 5 percentage points of drift before anything is sold. Wide on purpose:
-    # rebalancing more often costs more in spread than the drift it corrects.
-    rebalance_band=0.05,
-    # Orders below this are not worth the spread at this account size.
-    min_order=5.00,
-    # Left uninvested so a settlement quirk cannot cause a rejected order.
-    cash_buffer=2.00,
-)
+# The core sleeve. Sums to CORE_WEIGHT, not to 1.0 -- the satellite sleeve
+# supplies the rest.
+CORE_TARGETS = {
+    "VOO": 0.20,   # S&P 500 -- the large, established US companies
+    "QQQ": 0.08,   # Nasdaq 100 -- deliberate mega-cap tech tilt
+    "SCHD": 0.18,  # dividend / quality tilt
+    "VXUS": 0.18,  # total international -- diversification outside the US
+    "PICK": 0.08,  # global metals & mining -- cyclical commodity tilt
+    "EDV": 0.08,   # long-duration Treasuries -- rate bet, not ballast
+}
+
+CORE_WEIGHT = 0.80
+SATELLITE_WEIGHT = 0.20
+
+# The Robinhood watchlist that drives the satellite sleeve. The ID is recorded
+# so a run cannot pick up the wrong list by matching on a display name someone
+# renamed.
+SATELLITE_LIST_ID = "5976a5b5-ca37-4322-b980-c324d5720bbc"
+SATELLITE_LIST_NAME = "Stocks to buy"
+
+# 5 percentage points of drift before anything is sold. Wide on purpose:
+# rebalancing more often costs more in spread than the drift it corrects.
+REBALANCE_BAND = 0.05
+# Orders below this are not worth the spread at this account size.
+MIN_ORDER = 5.00
+# Left uninvested so a settlement quirk cannot cause a rejected order.
+CASH_BUFFER = 2.00
+
+
+def build_policy(
+    satellite_symbols: list[str] | tuple[str, ...] = (),
+    priced: set[str] | None = None,
+) -> tuple[AllocationPolicy, list[str]]:
+    """Combine the fixed core sleeve with the watchlist-driven satellite sleeve.
+
+    `satellite_symbols` is the watchlist contents, in list order. `priced`, when
+    given, is the set of symbols a live quote was obtained for; satellites
+    outside it are dropped. That keeps one delisted or halted ticker on the
+    watchlist from failing the whole run -- the remaining satellites simply
+    split the sleeve between them.
+
+    Returns the policy and a list of human-readable notes about anything
+    excluded, so the caller can report exclusions rather than hide them.
+
+    Symbols already in the core, and symbols in UNMANAGED, are refused a
+    satellite weight. The second case matters: dropping F onto the watchlist
+    must not turn the owner's own position into something the bot buys.
+    """
+    notes: list[str] = []
+    satellites: list[str] = []
+    seen: set[str] = set()
+
+    for raw in satellite_symbols:
+        sym = raw.strip().upper()
+        if not sym or sym in seen:
+            continue
+        seen.add(sym)
+        if sym in CORE_TARGETS:
+            notes.append(f"{sym} is a core holding; ignored as a satellite")
+        elif sym in UNMANAGED:
+            notes.append(f"{sym} is unmanaged and is never bought; ignored")
+        elif priced is not None and sym not in priced:
+            notes.append(f"{sym} has no usable price; excluded from this run")
+        else:
+            satellites.append(sym)
+
+    targets = dict(CORE_TARGETS)
+    if satellites:
+        each = SATELLITE_WEIGHT / len(satellites)
+        for sym in satellites:
+            targets[sym] = each
+        notes.append(
+            f"{len(satellites)} satellites at {each:.2%} each "
+            f"({SATELLITE_WEIGHT:.0%} sleeve)"
+        )
+    else:
+        # No usable satellites: scale the core back up to 1.0 rather than
+        # inventing a target for cash. A run with an empty watchlist should
+        # still invest into the core.
+        targets = {s: w / CORE_WEIGHT for s, w in CORE_TARGETS.items()}
+        notes.append("no usable satellites; core scaled to 100%")
+
+    total = sum(targets.values())
+    if abs(total - 1.0) > 1e-6:  # pragma: no cover - guards a bad edit above
+        raise AllocationError(f"built weights sum to {total:.6f}, not 1.0")
+
+    return (
+        AllocationPolicy(
+            targets=targets,
+            rebalance_band=REBALANCE_BAND,
+            min_order=MIN_ORDER,
+            cash_buffer=CASH_BUFFER,
+        ),
+        notes,
+    )
