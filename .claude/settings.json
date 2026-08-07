@@ -24,7 +24,10 @@
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_quotes",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_orders",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__review_equity_order",
-      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__place_equity_order"
+      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__place_equity_order",
+
+      "Bash(echo * | python3 scripts/plan_orders.py)"
     ]
   }
 }
+
