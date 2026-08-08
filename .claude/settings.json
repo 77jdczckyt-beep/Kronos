@@ -10,6 +10,17 @@
       "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__create_trigger",
       "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__update_trigger",
       "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__delete_trigger",
+      "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__send_later",
+
+      "mcp__Claude_Code_Remote__list_triggers",
+      "mcp__Claude_Code_Remote__create_trigger",
+      "mcp__Claude_Code_Remote__update_trigger",
+      "mcp__Claude_Code_Remote__delete_trigger",
+      "mcp__Claude_Code_Remote__send_later",
+      "mcp__Claude_Code_Remote__list_repos",
+      "mcp__Claude_Code_Remote__list_environments",
+      "mcp__Claude_Code_Remote__list_sessions",
+      "mcp__Claude_Code_Remote__get_session",
 
       "mcp__robinghood__get_accounts",
       "mcp__robinghood__get_portfolio",
@@ -18,6 +29,8 @@
       "mcp__robinghood__get_equity_orders",
       "mcp__robinghood__get_watchlists",
       "mcp__robinghood__get_watchlist_items",
+      "mcp__robinghood__get_equity_tradability",
+      "mcp__robinghood__get_option_positions",
       "mcp__robinghood__review_equity_order",
       "mcp__robinghood__place_equity_order",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_accounts",
@@ -27,6 +40,8 @@
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_orders",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_watchlists",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_watchlist_items",
+      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_equity_tradability",
+      "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__get_option_positions",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__review_equity_order",
       "mcp__88bdafd8-2a6c-47ab-b509-c132951f8cbc__place_equity_order"
     ]
